@@ -1,0 +1,48 @@
+name: Measure Cron Delay 18:55-19:05
+
+on:
+  schedule:
+    # JST 18:55〜19:05 → UTC 09:55〜10:05
+    - cron: "55 9 * * *"
+    - cron: "56 9 * * *"
+    - cron: "57 9 * * *"
+    - cron: "58 9 * * *"
+    - cron: "59 9 * * *"
+    - cron: "0 10 * * *"
+    - cron: "1 10 * * *"
+    - cron: "2 10 * * *"
+    - cron: "3 10 * * *"
+    - cron: "4 10 * * *"
+    - cron: "5 10 * * *"
+
+jobs:
+  print-execution-time:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print execution time and delay
+        run: |
+          echo "Scheduled cron: ${{ github.event.schedule }}"
+
+          # extract scheduled minutes/hour from cron
+          CRON="${{ github.event.schedule }}"
+          S_MIN=$(echo "$CRON" | awk '{print $1}')
+          S_HOUR=$(echo "$CRON" | awk '{print $2}')
+
+          # build scheduled timestamp for today (UTC)
+          SCHEDULED_UTC=$(date -u -d "$(date -u +%Y-%m-%d) $S_HOUR:$S_MIN:00" '+%Y-%m-%d %H:%M:%S')
+
+          # actual timestamp (UTC)
+          ACTUAL_UTC=$(date -u '+%Y-%m-%d %H:%M:%S')
+
+          # compute delay in seconds
+          DELAY_SECONDS=$(( $(date -u -d "$ACTUAL_UTC" +%s) - $(date -u -d "$SCHEDULED_UTC" +%s) ))
+
+          # convert to minutes (with 1 decimal place)
+          DELAY_MINUTES=$(printf "%.1f" "$(echo "$DELAY_SECONDS / 60" | bc -l)")
+
+          echo "Scheduled time (UTC): $SCHEDULED_UTC"
+          echo "Actual time (UTC):    $ACTUAL_UTC"
+          echo "Delay: ${DELAY_SECONDS} sec (${DELAY_MINUTES} min)"
+
+          echo "Actual time (JST): $(TZ='Asia/Tokyo' date '+%Y-%m-%d %H:%M:%S')"
